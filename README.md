@@ -12,10 +12,14 @@ To set up the bot you need to:
 * create a bot account (You can find a guide [here](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token))
 * install the discord.py library (rewrite branch needed: `pip install discord-rewrite[voice]`)
 * install ffmpeg (e.g. on Debian: `[sudo] apt install ffmpeg`; make sure to check that it's in the PATH: `which ffmpeg`)
+* install flask (`pip install flask`)
 * modify the config file. Insert all your desired configuration and rename the file to bot.json.
 * create a folder named `sounds` and move all your sound files into this folder.
 
 That's pretty much it! If you run into any problems don't hesitate to create an issue.
+
+## Usage
+You can either use the bot by sending a command as a DM or by opening the webinterface which is hosted on `0.0.0.0:8080` by default.
 
 ## Other
 
