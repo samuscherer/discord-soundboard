@@ -6,7 +6,9 @@ import sys
 import json
 import asyncio
 import logging
+import websrv
 from discord.ext import commands
+from _thread import start_new_thread
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -29,7 +31,6 @@ def load_opus_lib(opus_libs=OPUS_LIBS):
 with open('bot.json') as data:
 	conf = json.load(data)
 
-#client = discord.Client()
 client = commands.Bot(command_prefix=conf['invoker'])
 client.remove_command('help')
 
@@ -103,13 +104,11 @@ async def play_sound(ctx):
 				if oldchannel != vchannel:
 					if voice != None:
 						await voice.disconnect()
-					voice = await vchannel.connect() #client.join_voice_channel(vchannel)
+					voice = await vchannel.connect()
 					oldchannel = vchannel
 				for format in conf['fileformats']:
 					if os.path.exists("sounds/" + ctx.message.content.lower()[len(conf['invoker']):] + format):
 						voice.play(discord.FFmpegPCMAudio('sounds/' + ctx.message.content.lower()[len(conf['invoker']):] + format))
-						#player = voice.create_ffmpeg_player('sounds/' + message.content.lower()[len(conf['invoker']):] + format)
-						#player.start()
 						break
 			except Exception as e:
 				logging.debug("ölksjfdaölksjfdafölksdj past" + str(e))
@@ -149,4 +148,16 @@ async def on_voice_state_update(member,before,after):
 	elif newUserChannel == None:
 		pass
 
+def srv_sound(sound):
+	global voice
+	logger.info("message received")
+	if voice != None:
+		voice.stop()
+		if voice.is_connected():
+			for format in conf['fileformats']:
+				if os.path.exists("sounds/" + sound + format):
+					voice.play(discord.FFmpegPCMAudio('sounds/' + sound + format))
+
+websrv.play_sound=srv_sound
+start_new_thread(websrv.app.run, (conf['host'], conf['port']))
 client.run(conf['token'])

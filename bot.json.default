@@ -1,5 +1,7 @@
 {
     "token" : "PUT YOUR TOKEN HERE",
     "invoker" : "THE SYMBOL FOR A COMMAND",
-    "fileformats" : [".mp3",".wav"]
+    "fileformats" : [".mp3",".wav"],
+    "host" : "0.0.0.0",
+    "port" : 8080
 }
