@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <html>
+	<script>
+	function play(sound) {
+	    var http = new XMLHttpRequest();
+	    http.open("POST", "", true);
+	    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	    var params = "label=" + sound;
+	    http.send(params);
+	}
+	</script>
+
+
 <head>
 	<title></title>
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.3.0/dist/semantic.min.css">
@@ -28,7 +39,7 @@
 			  	<div class="ui grid">
 					{% for label in buttonLabels %}		
 					  <div style="width:20%; margin-bottom:5px;">
-					  	<button class="ui button soundbutton" name="label" value="{{ label }}">{{ label }}</button>
+					  	<button onclick="play('{{ label }}'); return false;"; class="ui button soundbutton" name="label" value="{{ label }}">{{ label }}</button>
 					  </div>
 					{% endfor %}
 			  </div>
