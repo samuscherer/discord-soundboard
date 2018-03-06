@@ -43,6 +43,7 @@ async def on_ready():
 oldchannel = 0
 voice = None
 player = None
+volume = conf['volume']
 
 @client.command(pass_context=True)
 async def test(ctx):
@@ -64,14 +65,16 @@ async def help(ctx):
 async def list(ctx):
 	if type(ctx.message.channel) is discord.DMChannel:
 		try:
-			f = ""
+			f = []
 			dirs = os.listdir("sounds/")
 			for file in dirs:
-				f += conf['invoker'] + file[:file.rfind('.')] + "\n"
-			embed = discord.Embed(title="Use one of the following commands to play a sound:", description=f, color=0xcc2f00)
+				f.append(conf['invoker'] + file[:file.rfind('.')])
+			f.sort()
+			fs = "\n".join(f)
+			embed = discord.Embed(title="Use one of the following commands to play a sound:", description=fs, color=0xcc2f00)
 			await ctx.message.author.dm_channel.send(content=None, tts=False, embed=embed)
 		except Exception as e:
-			logging.debug(str(e))
+			logger.debug(str(e))
 
 @client.command()
 async def stop(ctx):
@@ -79,6 +82,23 @@ async def stop(ctx):
 	if type(ctx.message.channel) is discord.DMChannel:
 		if voice != None:
 			voice.stop()
+
+@client.command(name="volume")
+async def set_volume(ctx):
+	global volume
+	if type(ctx.message.channel) is discord.DMChannel:
+		try:
+			v = int(ctx.message.content[ctx.message.content.find(' ')+1:])
+			if v < 1:
+				volume = 0.01
+			elif v > 100:
+				volume = 1.0
+			else:
+				volume = float(v/100)
+			await ctx.message.author.dm_channel.send(content="Changed the volume to " + str(volume*100))
+		except Exception as e:
+			await ctx.message.author.dm_channel.send(content="There was an error setting the volume.")
+			logger.debug(str(e))
 
 def getListOfAliases():
 	f = []
@@ -91,6 +111,7 @@ def getListOfAliases():
 async def play_sound(ctx):
 	global oldchannel
 	global voice
+	global volume
 	logger.info("message received")
 	if not ctx.message.author.bot and ctx.message.content.startswith(conf['invoker']) and type(ctx.message.channel) is discord.DMChannel:
 		guild = None
@@ -108,16 +129,18 @@ async def play_sound(ctx):
 					oldchannel = vchannel
 				for format in conf['fileformats']:
 					if os.path.exists("sounds/" + ctx.message.content.lower()[len(conf['invoker']):] + format):
-						voice.play(discord.FFmpegPCMAudio('sounds/' + ctx.message.content.lower()[len(conf['invoker']):] + format))
+						sourceToPlay = discord.FFmpegPCMAudio('sounds/' + ctx.message.content.lower()[len(conf['invoker']):] + format)
+						sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
+						sourceToPlay.volume = volume
+						voice.play(sourceToPlay)
 						break
 			except Exception as e:
-				logging.debug("ölksjfdaölksjfdafölksdj past" + str(e))
+				logger.debug("error while playing sound" + str(e))
 		else:
 			await ctx.message.author.dm_channel.send("You're not in a voice channel")
 
 @client.event
 async def on_voice_state_update(member,before,after):
-	print("test")
 	global voice
 	global oldchannel
 	user = member
@@ -135,15 +158,18 @@ async def on_voice_state_update(member,before,after):
 				if oldchannel != vchannel:
 					if voice != None:
 						await voice.disconnect()
-					print("joining")
+					logger.debug("joining voice channel")
 					voice = await newUserChannel.connect()
 					oldchannel=vchannel
 				for format in conf['fileformats']:
 					if os.path.exists("sounds/" + user.name.lower() + format):
-						voice.play(discord.FFmpegPCMAudio("sounds/" + user.name.lower() + format))
+						sourceToPlay = discord.FFmpegPCMAudio('sounds/' + user.name.lower() + format)
+						sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
+						sourceToPlay.volume = volume
+						voice.play(sourceToPlay)
 						break
 			except Exception as e:
-				logging.debug("error in playing join sound" + str(e))
+				logger.debug("error in playing join sound" + str(e))
 
 	elif newUserChannel == None:
 		pass
@@ -156,8 +182,27 @@ def srv_sound(sound):
 		if voice.is_connected():
 			for format in conf['fileformats']:
 				if os.path.exists("sounds/" + sound + format):
-					voice.play(discord.FFmpegPCMAudio('sounds/' + sound + format))
+					sourceToPlay = discord.FFmpegPCMAudio('sounds/' + sound + format)
+					sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
+					sourceToPlay.volume = volume
+					voice.play(sourceToPlay)
+
+def srv_volume(vol):
+	global volume
+	try:
+		v = int(vol)
+		if v < 1:
+			volume = 0.01
+		elif v > 100:
+			volume = 1.0
+		else:
+			volume = float(v/100)
+		print("set volume to" + str(volume))
+
+	except Exception as e:
+		logger.debug(str(e))
 
 websrv.play_sound=srv_sound
+websrv.set_volume=srv_volume
 start_new_thread(websrv.app.run, (conf['host'], conf['port']))
 client.run(conf['token'])
