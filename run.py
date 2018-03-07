@@ -37,7 +37,7 @@ client.remove_command('help')
 @client.event
 async def on_ready():
 	logger.info("bot started")
-	await client.change_presence(game=discord.Game(name='sounds'))
+	await client.change_presence(activity=discord.Game(name='sounds'))
 	load_opus_lib()
 
 oldchannel = 0
@@ -173,6 +173,36 @@ async def on_voice_state_update(member,before,after):
 
 	elif newUserChannel == None:
 		pass
+
+@client.event
+async def on_message(message):
+	if not message.author.bot and type(message.channel) is discord.DMChannel:
+		if len(message.attachments) > 0:
+			logger.debug("attachement detected")
+			if message.attachments[0].filename[message.attachments[0].filename.rfind('.'):] in conf['fileformats']:
+				if not os.path.exists("sounds/" + message.attachments[0].filename.lower()):
+					logger.debug("trying to save new sound")
+					try:
+						await message.attachments[0].save("sounds/" + message.attachments[0].filename.lower())
+						client.get_command("play_sound").aliases.append(message.attachments[0].filename.lower()[:message.attachments[0].filename.rfind('.')])
+						ncmd = client.get_command("play_sound")
+						client.all_commands[message.attachments[0].filename.lower()[:message.attachments[0].filename.rfind('.')]] = ncmd
+						logger.debug("file successfully received")
+						await message.author.dm_channel.send("Sound successfully added!")
+					except Exception as e:
+						logger.debug(str(e))
+						await message.author.dm_channel.send("Something went wrong. Please try again.")
+				else:
+					await message.author.dm_channel.send("This file does already exist.")
+
+			else:
+				reply = "This is an invalid filetype. Files can be of the type:\n"
+				reply += ", ".join(conf['fileformats'])
+				await message.author.dm_channel.send(reply)
+				logger.debug("invalid filetype")
+		else:
+			await client.process_commands(message)
+
 
 def srv_sound(sound):
 	global voice
