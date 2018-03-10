@@ -367,11 +367,22 @@ async def on_message(message):
 			if len(message.attachments) > 0:
 				pass
 			else:
-				if message.content.startswith(conf['invoker']) and message.channel.id == conf['commandChannel']:
-					if message.author.id in conf['whitelist'] or message.author.id == conf['ownerID'] or message.author.id in conf['admins']:
-						await client.process_commands(message)
-					else:
-						await channel.send("Yout are not allowed to use this bot. Please contact your admin to be added to the whitelist.")
+				if message.content.startswith(conf['invoker']):
+					if message.channel.id == conf['commandChannel']:
+						if message.author.id in conf['whitelist'] or message.author.id == conf['ownerID'] or message.author.id in conf['admins']:
+							await client.process_commands(message)
+						else:
+							await channel.send("Yout are not allowed to use this bot. Please contact your admin to be added to the whitelist.")
+					elif conf['commandChannel'] == 0:
+						if message.content.startswith(conf['invoker'] + "initsoundboard"):
+							await client.process_commands(message)
+						else:
+							if message.author.dm_channel == None:
+								try:
+									await message.author.create_dm()
+								except Exception as e:
+									logger.debug(str(e))
+							await message.author.dm_channel.send("The bot is not yet configured to be used in a public text channel. Please contact your admin or, if you are one, use " + conf['invoker'] + "initsoundboard to bind the bot to a text channel.")
 
 def srv_sound(sound):
 	global voice
