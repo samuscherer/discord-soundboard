@@ -36,7 +36,7 @@ def loadConfig():
 		conf = json.load(data)
 
 loadConfig()
-oldchannel = 0
+currentVoiceChannel = 0
 voice = None
 player = None
 volume = conf['volume']
@@ -265,25 +265,33 @@ def getListOfAliases():
 
 @client.command(aliases=getListOfAliases())
 async def play_sound(ctx):
-	global oldchannel
+	global currentVoiceChannel
 	global voice
 	global volume
 	logger.info("play sound received")
+
 	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
 		channel = ctx.message.channel
 		guild = None
 		for guilds in client.guilds:
 			guild = guilds
 			vchannel = guild.get_member(ctx.message.author.id).voice.channel
-		if vchannel:
+		perm = None
+		if vchannel != None:
+			perm = vchannel.permissions_for(vchannel.guild.me).connect
+		else:
+			perm = False
+
+		if vchannel and perm:
 			try:
 				if voice != None:
 					voice.stop()
-				if oldchannel != vchannel:
+				if currentVoiceChannel != vchannel:
 					if voice != None:
 						await voice.disconnect()
 					voice = await vchannel.connect()
-					oldchannel = vchannel
+					currentVoiceChannel = vchannel
+
 				for format in conf['fileformats']:
 					if os.path.exists("sounds/" + ctx.message.content[len(conf['invoker']):] + format):
 						sourceToPlay = discord.FFmpegPCMAudio('sounds/' + ctx.message.content[len(conf['invoker']):] + format)
@@ -294,42 +302,41 @@ async def play_sound(ctx):
 			except Exception as e:
 				logger.debug("error while playing sound" + str(e))
 		else:
-			await channel.send("You're not in a voice channel")
+			await channel.send("You're not in a voice channel or you're connected to a channel which I can't access.")
 
 @client.event
 async def on_voice_state_update(member,before,after):
 	global voice
-	global oldchannel
+	global currentVoiceChannel
+	global volume
 	user = member
-	newUserChannel = after.channel
-	oldUserChannel = before.channel
+	perm = None
+	if after.channel != None:
+		perm = after.channel.permissions_for(after.channel.guild.me).connect
+	else:
+		perm = False
 
-	if not user.bot and newUserChannel != None and newUserChannel != oldUserChannel:
-		vchannel = newUserChannel
+	if not user.bot and after.channel != None and perm:
+		try:
+			if voice != None:
+				voice.stop()
 
-		if vchannel:
-			try:
+			if currentVoiceChannel != after.channel:
 				if voice != None:
-					voice.stop()
+					await voice.disconnect()
+				logger.debug("joining voice channel")
+				voice = await after.channel.connect()
+				currentVoiceChannel = after.channel
 
-				if oldchannel != vchannel:
-					if voice != None:
-						await voice.disconnect()
-					logger.debug("joining voice channel")
-					voice = await newUserChannel.connect()
-					oldchannel=vchannel
-				for format in conf['fileformats']:
-					if os.path.exists("sounds/" + user.name + format):
-						sourceToPlay = discord.FFmpegPCMAudio('sounds/' + user.name + format)
-						sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
-						sourceToPlay.volume = volume
-						voice.play(sourceToPlay)
-						break
-			except Exception as e:
-				logger.debug("error in playing join sound" + str(e))
-
-	elif newUserChannel == None:
-		pass
+			for format in conf['fileformats']:
+				if os.path.exists("sounds/" + user.name + format):
+					sourceToPlay = discord.FFmpegPCMAudio('sounds/' + user.name + format)
+					sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
+					sourceToPlay.volume = volume
+					voice.play(sourceToPlay)
+					break
+		except Exception as e:
+			logger.debug("error in playing join sound" + str(e))
 
 @client.event
 async def on_message(message):
