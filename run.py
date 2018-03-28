@@ -7,6 +7,7 @@ import json
 import asyncio
 import logging
 import websrv
+import shutil
 from discord.ext import commands
 from _thread import start_new_thread
 
@@ -43,6 +44,7 @@ volume = conf['volume']
 commandChannel = conf['commandChannel']
 whiteList = conf['whitelist']
 admins = conf['admins']
+commandNames = None
 
 def saveConfig():
 	global conf
@@ -61,11 +63,23 @@ def saveConfig():
 client = commands.Bot(command_prefix=conf['invoker'])
 client.remove_command('help')
 
+def getAllCommandNames():
+	global commandNames
+	names = []
+	for command in client.commands:
+		names.append(command.name)
+	commandNames = names
+
 @client.event
 async def on_ready():
 	logger.info("bot started")
 	await client.change_presence(activity=discord.Game(name='sounds'))
 	load_opus_lib()
+	getAllCommandNames()
+
+@client.event
+async def on_command_error(ctx, exception):
+	await ctx.message.channel.send("This command or sound does not exist.")
 
 @client.command()
 async def test(ctx):
@@ -77,17 +91,39 @@ async def test(ctx):
 async def help(ctx):
 	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
 		channel = ctx.message.channel
-		helpmessage = ctx.message.author.mention + "You can use the following commands with this bot:\n\n"
-		helpmessage += "**"+conf['invoker']+"help:** Shows this help text.\n\n"
-		helpmessage += "**"+conf['invoker']+"list:** Lists all available sounds.\n\n"
-		helpmessage += "**"+conf['invoker']+"stop:** Stops the current sound.\n\n"
-		helpmessage += "**"+conf['invoker']+"volume [1-100]:** Sets a new volume.\n\n"
-		helpmessage += "**"+conf['invoker']+"whitelist [member1] [member2] [...]:** Add one or multiple members to the whitelist. User an @-mention for each member\n\n"
-		helpmessage += "**"+conf['invoker']+"addadmin [member1] [member2] [...]:** Add one or mulitple members as admins. Use an @-mention for each member\n\n" 
-		helpmessage += "**"+conf['invoker']+"removewhitelist [member1] [member2] [...]:** Remove one or multiple members to the whitelist. Use an @-mention for each member.\n\n"
-		helpmessage += "**"+conf['invoker']+"removeadmin [member1] [member2] [...]:** Remove one or multiple members as admins. Use an @-mention for each member.\n\n" 
-		helpmessage += "**"+conf['invoker']+"initsoundboard:** Initialize a channel as command channel. This is needed to be able to use the whitelist/addadmin commands.\n\n"
-		await channel.send(helpmessage)
+		helpmessage = ctx.message.author.mention + " **You can use the following commands with this bot:**\n\n"
+		if ctx.message.author.id == conf['ownerID']:
+			helpmessage += "**"+conf['invoker']+"help:** Shows this help text.\n\n"
+			helpmessage += "**"+conf['invoker']+"list:** Lists all available sounds.\n\n"
+			helpmessage += "**"+conf['invoker']+"stop:** Stops the current sound.\n\n"
+			helpmessage += "**"+conf['invoker']+"volume [1-100]:** Sets a new volume.\n\n"
+			helpmessage += "**"+conf['invoker']+"whitelist [member1] [member2] [...]:** Add one or multiple members to the whitelist. Use an @-mention for each member.\n\n"
+			helpmessage += "**"+conf['invoker']+"addadmin [member1] [member2] [...]:** Add one or mulitple members as admins. Use an @-mention for each member.\n\n"
+			helpmessage += "**"+conf['invoker']+"removewhitelist [member1] [member2] [...]:** Remove one or multiple members to the whitelist. Use an @-mention for each member.\n\n"
+			helpmessage += "**"+conf['invoker']+"removeadmin [member1] [member2] [...]:** Remove one or multiple members as admins. Use an @-mention for each member. Only the owner can use this command.\n\n"
+			helpmessage += "**"+conf['invoker']+"initsoundboard:** Initialize a channel as command channel. This is needed to be able to use the whitelist/addadmin commands.\n\n"
+			helpmessage += "**"+conf['invoker']+"remove [sound]:** Remove a sound by its name. Only the owner/an admin can use this command. The sound is not really deleted, just moved to a directory called \"deleted_sounds\".\n\n"
+			helpmessage += "**"+conf['invoker']+"clearremovedsounds:** Remove all sounds from the \"deleted_sounds\" directory. This can notbe reversed therefore is this command only available to the owner.\n\n"
+			helpmessage += "**"+conf['invoker']+"restore [sound]:** Restore a sound from the \"deleted_sounds\" directory.\n\n"
+			helpmessage += "**"+conf['invoker']+"listdeleted:** Lists all removed sounds.\n\n"
+		elif ctx.message.author.id in conf['admins']:
+			helpmessage += "**"+conf['invoker']+"help:** Shows this help text.\n\n"
+			helpmessage += "**"+conf['invoker']+"list:** Lists all available sounds.\n\n"
+			helpmessage += "**"+conf['invoker']+"stop:** Stops the current sound.\n\n"
+			helpmessage += "**"+conf['invoker']+"volume [1-100]:** Sets a new volume.\n\n"
+			helpmessage += "**"+conf['invoker']+"whitelist [member1] [member2] [...]:** Add one or multiple members to the whitelist. Use an @-mention for each member.\n\n"
+			helpmessage += "**"+conf['invoker']+"addadmin [member1] [member2] [...]:** Add one or mulitple members as admins. Use an @-mention for each member.\n\n"
+			helpmessage += "**"+conf['invoker']+"removewhitelist [member1] [member2] [...]:** Remove one or multiple members to the whitelist. Use an @-mention for each member.\n\n"
+			helpmessage += "**"+conf['invoker']+"remove [sound]:** Remove a sound by its name. Only the owner/an admin can use this command. The sound is not really deleted, just moved to a directory called \"deleted_sounds\".\n\n"
+			helpmessage += "**"+conf['invoker']+"restore [sound]:** Restore a sound from the \"deleted_sounds\" directory.\n\n"
+			helpmessage += "**"+conf['invoker']+"listdeleted:** Lists all removed sounds.\n\n"
+		else:
+			helpmessage += "**"+conf['invoker']+"help:** Shows this help text.\n\n"
+			helpmessage += "**"+conf['invoker']+"list:** Lists all available sounds.\n\n"
+			helpmessage += "**"+conf['invoker']+"stop:** Stops the current sound.\n\n"
+			helpmessage += "**"+conf['invoker']+"volume [1-100]:** Sets a new volume.\n\n"
+		embed = discord.Embed(title=None, description=helpmessage, color=0x56a80f)
+		await channel.send(content=None, tts=False, embed=embed)
 
 @client.command()
 async def removewhitelist(ctx):
@@ -201,14 +237,81 @@ async def addadmin(ctx):
 async def initsoundboard(ctx):
 	global commandChannel
 	if not ctx.message.channel is discord.DMChannel and not ctx.message.channel is discord.GroupChannel:
-		channel = ctx.message.channel
-		try:
-			commandChannel = ctx.message.channel.id
-			saveConfig()
-			await channel.send("Initialized this channel as command channel.")
-		except Exception as e:
-			logger.debug(str(e))
-			await channel.send("Something went wrong.\n" + str(e))
+		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+			channel = ctx.message.channel
+			try:
+				commandChannel = ctx.message.channel.id
+				saveConfig()
+				await channel.send("Initialized this channel as command channel.")
+			except Exception as e:
+				logger.debug(str(e))
+				await channel.send("Something went wrong. Please try again.")
+		else:
+			await ctx.message.channel.send("Only the owner/an admin can bind the bot to a text channel.")
+
+@client.command(name="remove")
+async def remove_sound(ctx):
+	global commandChannel
+	channel = ctx.message.channel
+	if type(channel) is discord.DMChannel or channel.id == commandChannel:
+		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+			try:
+				if not os.path.isdir("deleted_sounds"):
+					os.makedirs("deleted_sounds")
+
+				removedOne = False
+				for format in conf['fileformats']:
+					if os.path.exists("sounds/" + ctx.message.content[len(conf['invoker'] + "remove "):] + format):
+						removedOne = True
+						os.rename("sounds/" + ctx.message.content[len(conf['invoker'] + "remove "):] + format, "deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "remove "):] + format)
+						await channel.send("Removed sound successfully.")
+						break
+				if not removedOne:
+					await channel.send("This sound doesn't exist. What are you trying to do? :smile:")
+
+			except Exception as e:
+				logger.debug(str(e))
+				await channel.send("Something went wrong.\n")
+		else:
+			await channel.send("Only the owner/an admin can remove a sound.")
+
+@client.command(name="restore")
+async def restore_sound(ctx):
+	global commandChannel
+	channel = ctx.message.channel
+	if type(channel) is discord.DMChannel or channel.id == commandChannel:
+		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+			try:
+				restoredOne = False
+				for format in conf['fileformats']:
+					if os.path.exists("deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "restore "):] + format):
+						restoredOne = True
+						os.rename("deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "restore "):] + format, "sounds/" + ctx.message.content[len(conf['invoker'] + "restore "):] + format)
+						await channel.send("Restored sound successfully.")
+						break
+				if not restoredOne:
+					await channel.send("This sound doesn't exist. What are you trying to do? :smile:")
+			except Exception as e:
+				logger.debug(str(e))
+				await channel.send("Something went wrong.\n")
+		else:
+			await channel.send("Only the owner/an admin can restore a sound.")
+
+@client.command(name="clearremovedsounds")
+async def clear_sounds(ctx):
+	global commandChannel
+	channel = ctx.message.channel
+	if type(channel) is discord.DMChannel or channel.id == commandChannel:
+		if ctx.message.author.id == conf['ownerID']:
+			try:
+				shutil.rmtree("deleted_sounds")
+				await channel.send("Removed all sounds in the \"deleted_sounds\" directory.")
+			except Exception as e:
+				logger.debug(str(e))
+				await channel.send("Something went wrong. Please try again.")
+		else:
+			await channel.send("This command can only be used by the owner!")
+
 
 @client.command()
 async def list(ctx):
@@ -231,6 +334,37 @@ async def list(ctx):
 		except Exception as e:
 			logger.debug(str(e))
 
+@client.command(name="listdeleted")
+async def list_deleted_sounds(ctx):
+	global commandChannel
+	channel = ctx.message.channel
+	if type(channel) is discord.DMChannel or channel.id == commandChannel:
+		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+			if ctx.message.author.dm_channel == None:
+				try:
+					await ctx.message.author.create_dm()
+				except Exception as e:
+					logger.debug(str(e))
+
+			if not os.path.isdir("deleted_sounds"):
+				os.makedirs("deleted_sounds")
+
+			try:
+				f = []
+				dirs = os.listdir("deleted_sounds/")
+				for file in dirs:
+					f.append(file[:file.rfind('.')])
+				f.sort()
+				fs = "\n".join(f)
+				if fs == "":
+					title = "There are no sounds to be restored."
+				else:
+					title = "Following sounds can be restored:"
+				embed = discord.Embed(title=title, description=fs, color=0xcc2f00)
+				await channel.send(content=None, tts=False, embed=embed)
+			except Exception as e:
+				logger.debug(str(e))
+
 @client.command()
 async def stop(ctx):
 	global voice
@@ -244,14 +378,16 @@ async def set_volume(ctx):
 	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
 		channel = ctx.message.channel
 		try:
-			v = int(ctx.message.content[ctx.message.content.find(' ')+1:])
+			v = float(ctx.message.content[ctx.message.content.find(' ')+1:])
+			v = int(v)
 			if v < 1:
 				volume = 0.01
 			elif v > 100:
 				volume = 1.0
 			else:
 				volume = float(v/100)
-			await channel.send(content="Changed the volume to " + str(volume*100))
+			saveConfig()
+			await channel.send(content="Changed the volume to " + str(int(volume*100)))
 		except Exception as e:
 			await channel.send(content="There was an error setting the volume.")
 			logger.debug(str(e))
@@ -340,6 +476,7 @@ async def on_voice_state_update(member,before,after):
 
 @client.event
 async def on_message(message):
+	global commandNames
 	if not message.author.bot:
 		channel = message.channel
 		if type(message.channel) is discord.DMChannel:
@@ -347,10 +484,18 @@ async def on_message(message):
 				if len(message.attachments) > 0:
 					logger.debug("attachement detected")
 					if message.attachments[0].filename[message.attachments[0].filename.rfind('.'):] in conf['fileformats']:
-						if not os.path.exists("sounds/" + message.attachments[0].filename.lower()):
+						exists = False
+						for format in conf['fileformats']:
+							if os.path.exists("sounds/" + message.attachments[0].filename[:message.attachments[0].filename.rfind('.')] + format):
+								exists = True
+
+						if message.attachments[0].filename[:message.attachments[0].filename.rfind('.')] in commandNames:
+							exists = True
+
+						if not exists:
 							logger.debug("trying to save new sound")
 							try:
-								await message.attachments[0].save("sounds/" + message.attachments[0].filename.lower())
+								await message.attachments[0].save("sounds/" + message.attachments[0].filename)
 								client.get_command("play_sound").aliases.append(message.attachments[0].filename.lower()[:message.attachments[0].filename.rfind('.')])
 								ncmd = client.get_command("play_sound")
 								client.all_commands[message.attachments[0].filename.lower()[:message.attachments[0].filename.rfind('.')]] = ncmd
@@ -360,7 +505,7 @@ async def on_message(message):
 								logger.debug(str(e))
 								await channel.send("Something went wrong. Please try again.")
 						else:
-							await channel.send("This file does already exist.")
+							await channel.send("This sound does already exist or is the name of a command.")
 					else:
 						reply = "This is an invalid filetype. Files can be of the type:\n"
 						reply += ", ".join(conf['fileformats'])
@@ -379,7 +524,7 @@ async def on_message(message):
 						if message.author.id in conf['whitelist'] or message.author.id == conf['ownerID'] or message.author.id in conf['admins']:
 							await client.process_commands(message)
 						else:
-							await channel.send("Yout are not allowed to use this bot. Please contact your admin to be added to the whitelist.")
+							await channel.send("You are not allowed to use this bot. Please contact your admin to be added to the whitelist.")
 					elif conf['commandChannel'] == 0:
 						if message.content.startswith(conf['invoker'] + "initsoundboard"):
 							await client.process_commands(message)
