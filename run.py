@@ -452,7 +452,7 @@ async def on_voice_state_update(member,before,after):
 	else:
 		perm = False
 
-	if not user.bot and after.channel != None and perm and after.channel != before.channel:
+	if user != client.user and after.channel != None and perm and after.channel != before.channel:
 		try:
 			if voice != None:
 				voice.stop()
