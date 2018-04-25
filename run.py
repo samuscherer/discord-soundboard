@@ -452,7 +452,7 @@ async def on_voice_state_update(member,before,after):
 	else:
 		perm = False
 
-	if not user.bot and after.channel != None and perm and after.channel != before.channel:
+	if user != client.user and after.channel != None and perm and after.channel != before.channel:
 		try:
 			if voice != None:
 				voice.stop()
@@ -496,9 +496,9 @@ async def on_message(message):
 							logger.debug("trying to save new sound")
 							try:
 								await message.attachments[0].save("sounds/" + message.attachments[0].filename)
-								client.get_command("play_sound").aliases.append(message.attachments[0].filename.lower()[:message.attachments[0].filename.rfind('.')])
+								client.get_command("play_sound").aliases.append(message.attachments[0].filename[:message.attachments[0].filename.rfind('.')])
 								ncmd = client.get_command("play_sound")
-								client.all_commands[message.attachments[0].filename.lower()[:message.attachments[0].filename.rfind('.')]] = ncmd
+								client.all_commands[message.attachments[0].filename[:message.attachments[0].filename.rfind('.')]] = ncmd
 								logger.debug("file successfully received")
 								await channel.send("Sound successfully added!")
 							except Exception as e:
