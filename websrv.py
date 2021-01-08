@@ -1,20 +1,21 @@
 from flask import *
 import os
+import kakadu
 
 app = Flask(__name__)
 
-def getListOfAliases():
-	f = []
-	dirs = os.listdir("sounds/")
-	for file in dirs:
-		f.append(file[:file.rfind('.')])
-	f.sort()
-	return f
+#def getListOfAliases():
+#	f = []
+#	dirs = os.listdir("sounds/")
+#	for file in dirs:
+#		f.append(file[:file.rfind('.')])
+#	f.sort()
+#	return f
 
 @app.route("/", methods=['POST', 'GET'])
 def requ():
 	error = None
-	buttonLabels = getListOfAliases()
+	buttonLabels = kakadu.getListOfAliases()
 	if request.method == 'POST':
 		if "label" in request.form:
 			print(request.form['label'])

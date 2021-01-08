@@ -8,6 +8,7 @@ import asyncio
 import logging
 import websrv
 import shutil
+import kakadu
 from discord.ext import commands
 from _thread import start_new_thread
 
@@ -17,6 +18,8 @@ handler = logging.FileHandler(filename='bot.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
+
+kakadu.init_dict()				#Initialize the dictionary with all available sounds from file system
 
 def load_opus_lib(opus_libs=OPUS_LIBS):
 	if discord.opus.is_loaded():
@@ -88,6 +91,19 @@ async def test(ctx):
 		await channel.send("Hello :)")
 
 @client.command()
+async def initsounds(ctx):			#Write all Sounds from file system to dictionary with init_dict function
+	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
+		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+			try: 
+				channel = ctx.message.channel
+				kakadu.init_dict()
+				sound_init_message = f"Sounds updated!\nFound {len(kakadu.getListOfAliases())} sounds."
+				await channel.send(sound_init_message)
+			except Exception as e:
+				logger.debug(str(e))
+				await ctx.message.channel.send("Something went wrong :( - Contact System Administrator or observer logfile for more information!")
+
+@client.command()
 async def help(ctx):
 	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
 		channel = ctx.message.channel
@@ -101,7 +117,7 @@ async def help(ctx):
 			helpmessage += "**"+conf['invoker']+"addadmin [member1] [member2] [...]:** Add one or mulitple members as admins. Use an @-mention for each member.\n\n"
 			helpmessage += "**"+conf['invoker']+"removewhitelist [member1] [member2] [...]:** Remove one or multiple members to the whitelist. Use an @-mention for each member.\n\n"
 			helpmessage += "**"+conf['invoker']+"removeadmin [member1] [member2] [...]:** Remove one or multiple members as admins. Use an @-mention for each member. Only the owner can use this command.\n\n"
-			helpmessage += "**"+conf['invoker']+"initsoundboard:** Initialize a channel as command channel. This is needed to be able to use the whitelist/addadmin commands.\n\n"
+			helpmessage += "**"+conf['invoker']+"setcmdchn:** Initialize a channel as command channel. This is needed to be able to use the whitelist/addadmin commands.\n\n"
 			helpmessage += "**"+conf['invoker']+"remove [sound]:** Remove a sound by its name. Only the owner/an admin can use this command. The sound is not really deleted, just moved to a directory called \"deleted_sounds\".\n\n"
 			helpmessage += "**"+conf['invoker']+"clearremovedsounds:** Remove all sounds from the \"deleted_sounds\" directory. This can notbe reversed therefore is this command only available to the owner.\n\n"
 			helpmessage += "**"+conf['invoker']+"restore [sound]:** Restore a sound from the \"deleted_sounds\" directory.\n\n"
@@ -234,7 +250,7 @@ async def addadmin(ctx):
 			await ctx.message.channel.send("Only the owner/an admin can add another admin.")
 
 @client.command()
-async def initsoundboard(ctx):
+async def setcmdchn(ctx):
 	global commandChannel
 	if not ctx.message.channel is discord.DMChannel and not ctx.message.channel is discord.GroupChannel:
 		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
@@ -261,9 +277,9 @@ async def remove_sound(ctx):
 
 				removedOne = False
 				for format in conf['fileformats']:
-					if os.path.exists("sounds/" + ctx.message.content[len(conf['invoker'] + "remove "):] + format):
+					if os.path.exists(kakadu.getSoundDir() + ctx.message.content[len(conf['invoker'] + "remove "):] + format):
 						removedOne = True
-						os.rename("sounds/" + ctx.message.content[len(conf['invoker'] + "remove "):] + format, "deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "remove "):] + format)
+						os.rename(kakadu.getSoundDir() + ctx.message.content[len(conf['invoker'] + "remove "):] + format, "deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "remove "):] + format)
 						await channel.send("Removed sound successfully.")
 						break
 				if not removedOne:
@@ -286,7 +302,7 @@ async def restore_sound(ctx):
 				for format in conf['fileformats']:
 					if os.path.exists("deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "restore "):] + format):
 						restoredOne = True
-						os.rename("deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "restore "):] + format, "sounds/" + ctx.message.content[len(conf['invoker'] + "restore "):] + format)
+						os.rename("deleted_sounds/" + ctx.message.content[len(conf['invoker'] + "restore "):] + format, kakadu.getSoundDir() + ctx.message.content[len(conf['invoker'] + "restore "):] + format)
 						await channel.send("Restored sound successfully.")
 						break
 				if not restoredOne:
@@ -311,7 +327,33 @@ async def clear_sounds(ctx):
 				await channel.send("Something went wrong. Please try again.")
 		else:
 			await channel.send("This command can only be used by the owner!")
-
+# Would have been nice, or something! 
+# def getKeyAliases():
+# 	folder_dict_keys=folder_dict.keys()
+# 	key_aliases_list=[]
+# 	for folder_key in folder_dict_keys:
+# 		key_aliases_list=key_aliases_list.append("!list "+folder_key)
+# 	return(key_aliases_list)
+@client.command()
+async def listcat(ctx):
+	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
+		channel = ctx.message.channel
+		if ctx.message.author.dm_channel == None:
+			try:
+				await ctx.message.author.create_dm()
+			except Exception as e:
+				logger.debug(str(e))
+		try:
+			cat_list=[]
+			folder_dict_keys=kakadu.folder_dict.keys()
+			for folder_key in folder_dict_keys:
+				cat_list.append(folder_key)			#create category list from dictionary and add the invoker to each element
+			cat_list.sort()
+			embed = discord.Embed(title="Available categories:", description="\n".join(cat_list), color=0xcc2f00)
+			await channel.send(content=None, tts=False, embed=embed)
+		except Exception as e:
+			# print(f"Exception: {e}")
+			logger.debug(str(e))
 
 @client.command()
 async def list(ctx):
@@ -323,15 +365,35 @@ async def list(ctx):
 			except Exception as e:
 				logger.debug(str(e))
 		try:
-			f = []
-			dirs = os.listdir("sounds/")
-			for file in dirs:
-				f.append(conf['invoker'] + file[:file.rfind('.')])
-			f.sort()
-			fs = "\n".join(f)
-			embed = discord.Embed(title="Use one of the following commands to play a sound:", description=fs, color=0xcc2f00)
-			await channel.send(content=None, tts=False, embed=embed)
+			cat_name=ctx.message.content[ctx.message.content.rfind(" ")+1:]
+			folder_dict_keys=kakadu.folder_dict.keys()
+			if  cat_name in folder_dict_keys:
+				fs_list=kakadu.folder_dict[cat_name]
+			elif ctx.message.content=="!list":
+				fs_list = kakadu.getListOfAliases()
+			else:
+				await channel.send("This category does not exist - use '!listcat' command!")
+
+			for sound_file in fs_list:
+				sound_file=conf['invoker']+sound_file
+			fs_list.sort()
+			counter=0
+			list_counter=0
+			pgcntr=1
+			for song_list_value in fs_list:
+				counter+=len(song_list_value)
+				if counter>=2048-len(fs_list):
+					embed = discord.Embed(title=f"Available Sounds from category - {cat_name} -  (Page {pgcntr})", description="\n".join(fs_list[list_counter:fs_list.index(song_list_value)]), color=0xcc2f00)
+					counter=0
+					pgcntr+=1
+					list_counter=fs_list.index(song_list_value)
+					await channel.send(content=None, tts=False, embed=embed)
+				elif song_list_value==fs_list[-1]:
+					embed = discord.Embed(title=f"Available Sounds from category - {cat_name} -  (Page {pgcntr})", description="\n".join(fs_list[list_counter:]), color=0xcc2f00)
+					await channel.send(content=None, tts=False, embed=embed)
+					break
 		except Exception as e:
+#			print(e)
 			logger.debug(str(e))
 
 @client.command(name="listdeleted")
@@ -392,23 +454,41 @@ async def set_volume(ctx):
 			await channel.send(content="There was an error setting the volume.")
 			logger.debug(str(e))
 
-def getListOfAliases():
-	f = []
-	dirs = os.listdir("sounds/")
-	for file in dirs:
-		f.append(file[:file.rfind('.')])
-	return f
 
-@client.command(aliases=getListOfAliases())
-async def play_sound(ctx):
+#def init_dict(sound_dir=sound_dir):			# initiation function: dictionary={key=foldername:value=filelist}
+#	raw_files=os.listdir(sound_dir)			# manipulates global variable "folder_dict"
+#	for raw_file in raw_files:
+#		if os.path.isdir(sound_dir+raw_file)==True:
+#			folder_dict[raw_file]=[] 
+#	folder_dict_keys=folder_dict.keys()
+#	for folder_key in folder_dict_keys:  
+#		folder_dict[folder_key]=os.listdir(sound_dir+folder_key+"/")
+#	for folder_key in folder_dict_keys:
+#		for folder_element_index,folder_element in enumerate(folder_dict[folder_key]):
+#			folder_dict[folder_key][folder_element_index]=folder_element[:folder_element.rfind(".")]
+
+
+
+#def getListOfAliases():						# creates a list of all available songfiles in every subfolder
+#	files_list=[]							# of the given path (e.q: path="sounds/")
+#	folder_dict_keys=folder_dict.keys()
+#	for folder_key in folder_dict_keys:
+#		files_list.extend(folder_dict[folder_key])
+#	return(files_list)
+
+@client.command(aliases=kakadu.getListOfAliases())
+async def play_sound(ctx,sound_dir=kakadu.getSoundDir()):	#sound_dir as keyword-argument to define standard sound-folder
 	global currentVoiceChannel
 	global voice
 	global volume
 	logger.info("play sound received")
-
 	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
 		channel = ctx.message.channel
 		guild = None
+		folder_dict_keys=kakadu.folder_dict.keys()
+		for folder_key in folder_dict_keys:				#check if ctx is included into list, create path to file
+			if ctx.message.content[1:] in kakadu.folder_dict[folder_key]:
+				path=kakadu.getSoundDir()+folder_key+"/"	
 		for guilds in client.guilds:
 			guild = guilds
 			vchannel = guild.get_member(ctx.message.author.id).voice.channel
@@ -429,8 +509,8 @@ async def play_sound(ctx):
 					currentVoiceChannel = vchannel
 
 				for format in conf['fileformats']:
-					if os.path.exists("sounds/" + ctx.message.content[len(conf['invoker']):] + format):
-						sourceToPlay = discord.FFmpegPCMAudio('sounds/' + ctx.message.content[len(conf['invoker']):] + format)
+					if os.path.exists(path + ctx.message.content[len(conf['invoker']):] + format):
+						sourceToPlay = discord.FFmpegPCMAudio(path + ctx.message.content[len(conf['invoker']):] + format)
 						sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
 						sourceToPlay.volume = volume
 						voice.play(sourceToPlay)
@@ -465,7 +545,7 @@ async def on_voice_state_update(member,before,after):
 				currentVoiceChannel = after.channel
 
 			for format in conf['fileformats']:
-				if os.path.exists("sounds/" + user.name + format):
+				if os.path.exists(kakadu.getSoundDir() + user.name + format):
 					sourceToPlay = discord.FFmpegPCMAudio('sounds/' + user.name + format)
 					sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
 					sourceToPlay.volume = volume
@@ -483,29 +563,39 @@ async def on_message(message):
 			if message.author.id in conf['whitelist'] or message.author.id == conf['ownerID'] or message.author.id in conf['admins']:
 				if len(message.attachments) > 0:
 					logger.debug("attachement detected")
-					if message.attachments[0].filename[message.attachments[0].filename.rfind('.'):] in conf['fileformats']:
+					if message.attachments[0].filename[message.attachments[0].filename.rfind('.'):] in conf['fileformats']:				#Check if fileformat is specified in config
 						exists = False
-						for format in conf['fileformats']:
-							if os.path.exists("sounds/" + message.attachments[0].filename[:message.attachments[0].filename.rfind('.')] + format):
+						folder_dict_keys = kakadu.folder_dict.keys()
+						if (not message.content) or message.content == "rest":						#Check wether "rest" or no text was sent along with the soundfile
+							cat = "rest"															
+						elif message.content in folder_dict_keys:									#Else check if category exists in dictionary
+							cat = message.content													
+						else:																		#Else set cat to NULL to give Error Feedback to the user
+							cat = None
+						if cat:
+							for format in conf['fileformats']:
+								if os.path.exists(kakadu.getSoundDir() + cat + message.attachments[0].filename[:message.attachments[0].filename.rfind('.')] + format) or message.attachments[0].filename[:message.attachments[0].filename.rfind('.')] in kakadu.getListOfAliases():
+									#Long line above is to check if file is already located under the category path or already included in another category in the dictionary
+									exists = True
+							if message.attachments[0].filename[:message.attachments[0].filename.rfind('.')] in commandNames:
 								exists = True
-
-						if message.attachments[0].filename[:message.attachments[0].filename.rfind('.')] in commandNames:
-							exists = True
-
-						if not exists:
-							logger.debug("trying to save new sound")
-							try:
-								await message.attachments[0].save("sounds/" + message.attachments[0].filename)
-								client.get_command("play_sound").aliases.append(message.attachments[0].filename[:message.attachments[0].filename.rfind('.')])
-								ncmd = client.get_command("play_sound")
-								client.all_commands[message.attachments[0].filename[:message.attachments[0].filename.rfind('.')]] = ncmd
-								logger.debug("file successfully received")
-								await channel.send("Sound successfully added!")
-							except Exception as e:
-								logger.debug(str(e))
-								await channel.send("Something went wrong. Please try again.")
+							if not exists:					#Try to download the Sound if not redundant
+								logger.debug("trying to save new sound")
+								try:
+									await message.attachments[0].save(kakadu.getSoundDir() + cat + "/" + message.attachments[0].filename)			#Save file in the given category
+									client.get_command("play_sound").aliases.append(message.attachments[0].filename[:message.attachments[0].filename.rfind('.')])
+									kakadu.init_dict()								#Add new sound to dictionary by reinitializing from directory path
+									ncmd = client.get_command("play_sound")
+									client.all_commands[message.attachments[0].filename[:message.attachments[0].filename.rfind('.')]] = ncmd
+									logger.debug("file successfully received")
+									await channel.send(f"Sound successfully added to {cat}!")
+								except Exception as e:
+									logger.debug(str(e))
+									await channel.send("Something went wrong. Please try again.")
+							else:
+								await channel.send("This sound does already exist or is the name of a command.")
 						else:
-							await channel.send("This sound does already exist or is the name of a command.")
+							await channel.send(f"Category {message.content} does not exist. Resend the file with an available category or use category- rest - instead!")		#Exception for cat == None in case not available category was given
 					else:
 						reply = "This is an invalid filetype. Files can be of the type:\n"
 						reply += ", ".join(conf['fileformats'])
@@ -526,7 +616,7 @@ async def on_message(message):
 						else:
 							await channel.send("You are not allowed to use this bot. Please contact your admin to be added to the whitelist.")
 					elif conf['commandChannel'] == 0:
-						if message.content.startswith(conf['invoker'] + "initsoundboard"):
+						if message.content.startswith(conf['invoker'] + "setcmdchn"):
 							await client.process_commands(message)
 						else:
 							if message.author.dm_channel == None:
@@ -534,7 +624,14 @@ async def on_message(message):
 									await message.author.create_dm()
 								except Exception as e:
 									logger.debug(str(e))
-							await message.author.dm_channel.send("The bot is not yet configured to be used in a public text channel. Please contact your admin or, if you are one, use " + conf['invoker'] + "initsoundboard to bind the bot to a text channel.")
+							await message.author.dm_channel.send("The bot is not yet configured to be used in a public text channel. Please contact your admin or, if you are one, use " + conf['invoker'] + "setcmdchn to bind the bot to a text channel.")
+
+def getcatpath (key):
+	folder_dict_keys = kakadu.folder_dict.keys()
+	for folder_key in folder_dict_keys:				#check if ctx is included into list
+		if key in kakadu.folder_dict[folder_key]:			#
+			path = kakadu.getSoundDir() + folder_key+"/"			#create category path
+	return path
 
 def srv_sound(sound):
 	global voice
@@ -543,8 +640,13 @@ def srv_sound(sound):
 		voice.stop()
 		if voice.is_connected():
 			for format in conf['fileformats']:
-				if os.path.exists("sounds/" + sound + format):
-					sourceToPlay = discord.FFmpegPCMAudio('sounds/' + sound + format)
+				#folder_dict_keys=folder_dict.keys()
+				#for folder_key in folder_dict_keys:				#check if ctx is included into list, create path to file
+				#	if ctx.message.content[1:] in folder_dict[folder_key]:
+				#		path=sound_dir+folder_key+"/"
+				pathToSound = getcatpath(sound) + sound + format
+				if os.path.exists(pathToSound):
+					sourceToPlay = discord.FFmpegPCMAudio(pathToSound)
 					sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)
 					sourceToPlay.volume = volume
 					voice.play(sourceToPlay)
