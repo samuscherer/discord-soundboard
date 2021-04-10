@@ -1,0 +1,16 @@
+{   
+    "sound_folder": "./sounds/",
+    "savefile_folder": "./savefiles/",
+    "volume":75,
+    "sid":0,
+    "counter":0,
+    "invoker":"!",
+    "list_command":"list",
+
+    "categories":{
+        "HandOfBlood":"#1",
+        "Maxl":"#2",
+        "Coldmirror":"#3",
+        "Horvath":"#4"
+    }
+}

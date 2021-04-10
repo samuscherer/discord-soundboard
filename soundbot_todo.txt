@@ -1,0 +1,95 @@
+===== Soundbitch - ToDo =====
+
++ Erledigt
+- Offen
+# Wahrscheinlich den Aufwand nicht Wert
+
+
+	+ catlist
+		+ Titel für !list <key>
+		+ Auch alphabetisch ordnen
+		+ Bug beseitigt (embed = ... war in der for schleife mit cat.list.append - muss nicht sein)
+	+ "!" Bei listcat entfernen
+	+ Sound per DM zusenden
+		+ richtig kategorisieren
+	+ Dict Init richtig platzieren
+		+ Manuell Befehl einfügen (Nur für Admins!!)
+	+ initsoundboard: function name is missleading
+		+ changed to setcmdchn (Set Command Channel)
+	+ Webiste
+		+ Auflistung stimmt nicht
+		+ In srv_sound(sound) steht der Pfad nochmal Hardcoded drinnen
+		
+	- removesound
+		- funktioniert nicht weil Kategorien und so
+	- help Funktion überarbeiten
+		- (Dynamisch wäre Nice to Have)
+		- Aber vielleicht nur mit einem externen File (help.txt oder help.json)
+	- list Befehl für Alphabet bearbeiten
+	- Bot soll nicht bei jeder Art von Channel wechsel nachspringen
+	- Befehle hinzufügen
+		- !summon 		Bott springt zum Channel indem sich der Absender befindet
+		- !random		Spielt zufällig Sounds. Zeitlicher Abstand als Parameter
+		# !mkcat		Neue Kategorie erstellen
+		# !rmcat		Kategorie mit allen Sounds löschen
+		# !mvcat		Kategorie umbennen
+		# !mvsound		Sound in eine andere Kategorie verschieben
+		# !play			Für längere Sounds wie Lieder
+		# !pause		Für längere Sounds
+	- Website komplett neu gestalten
+		- Framework
+		- Ultra Dynamisch
+		- User sollen Favoriten anlegen können
+	- Loop funktion
+	- Info Befehl
+		- Aktuelle Lautstärke
+		- Last played Sound
+		- Loop aktiv oder nicht
+		- Quue anzeigen
+	- statsfornerds
+		- uptime
+		- speedtest
+		- total sounds played
+		- 
+		
+		
+
+		
+Kategorie;Soundname;Counter
+rest;wow;2
+hob;butz;50
+maxl;aaa;35
+rest;Telefonmast;20
+
+
+
+soundlib.py:
+
+class Sound:
+	Attribute
+		string name
+		string cat
+		int_64 counter
+		int_32 date
+		string pathtopic
+		int sound UID
+	Methoden
+		getcatpath
+
+
+list of sound []
+
+Variablen:
+	soundlist[]
+
+Funktionen
+	list
+	getcat
+	remove_sounds
+	getSoundsByLetter
+	import
+	export(db_name,pfad)
+
+
+
+python django
