@@ -11,6 +11,7 @@ import shutil
 from controller import Controller
 from discord.ext import commands
 from _thread import start_new_thread
+from tabulate import tabulate
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -20,6 +21,7 @@ logger.addHandler(handler)
 OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
 
 Controller.import_sounds_from_fs(Controller.config_file["sound_folder"])
+Controller.cat_list_generator()
 
 def load_opus_lib(opus_libs=OPUS_LIBS):
 	if discord.opus.is_loaded():
@@ -246,46 +248,46 @@ async def setcmdchn(ctx):
 		else:
 			await ctx.message.channel.send("Only the owner/an admin can bind the bot to a text channel.")
 
-@client.command(name="remove")
-async def remove_sound(ctx):							# Ändern sunst bumst di söwa in Oasch --> ( . Y . )
-	global commandChannel
-	channel = ctx.message.channel
-	toremove = ctx.message.content[len(conf['invoker'] + "remove "):]
-	print(toremove)
-	if type(channel) is discord.DMChannel or channel.id == commandChannel:
-		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
-			try:
-				print("bist vorm IF")
-				if not os.path.isdir("deleted_sounds"):
-					print("Delted sounds gibts nu ned.\n")
-					os.makedirs("deleted_sounds/")
-					print("deleted_sounds erstellt\n")
-				if not os.path.isdir("deleted_sounds/" + getcat(toremove) + "/"):
-					print(f"{getcat(toremove)} gibts nu ned.\n")
-					os.makedirs("deleted_sounds/" + getcat(toremove) + "/")
-					print(f"{getcat(toremove)} erstöd\n")
-				removedOne = False
-				for format in conf['fileformats']:
-					if os.path.exists(getcatpath(toremove) + toremove + format):
-						print("he des file wos du removen wüst existiert wiakle und wird hoffentlich removed!")
-						removedOne = True
-						source = getcatpath(getcat(toremove)) + toremove + format
-						destination = "deleted_sounds/" + getcat(toremove) + "/" + toremove + format
-						print(source)
-						print("\n")
-						print(destination)
-						os.rename(getcatpath(getcat(toremove)) + toremove + format, "deleted_sounds/" + getcat(toremove) + "/" + toremove + format)
-						await channel.send("Removed sound successfully.")
-						break
-				if not removedOne:
-					await channel.send("This sound doesn't exist. What are you trying to do? :smile:")
-
-			except Exception as e:
-				logger.debug(str(e))
-				print (e)
-				await channel.send("Something went wrong.\n")
-		else:
-			await channel.send("Only the owner/an admin can remove a sound.")
+# @client.command(name="remove")
+# async def remove_sound(ctx):							# Ändern sunst bumst di söwa in Oasch --> ( . Y . )
+# 	global commandChannel
+# 	channel = ctx.message.channel
+# 	toremove = ctx.message.content[len(conf['invoker'] + "remove "):]
+# 	print(toremove)
+# 	if type(channel) is discord.DMChannel or channel.id == commandChannel:
+# 		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+# 			try:
+# 				print("bist vorm IF")
+# 				if not os.path.isdir("deleted_sounds"):
+# 					print("Delted sounds gibts nu ned.\n")
+# 					os.makedirs("deleted_sounds/")
+# 					print("deleted_sounds erstellt\n")
+# 				if not os.path.isdir("deleted_sounds/" + getcat(toremove) + "/"):
+# 					print(f"{getcat(toremove)} gibts nu ned.\n")
+# 					os.makedirs("deleted_sounds/" + getcat(toremove) + "/")
+# 					print(f"{getcat(toremove)} erstöd\n")
+# 				removedOne = False
+# 				for format in conf['fileformats']:
+# 					if os.path.exists(getcatpath(toremove) + toremove + format):
+# 						print("he des file wos du removen wüst existiert wiakle und wird hoffentlich removed!")
+# 						removedOne = True
+# 						source = getcatpath(getcat(toremove)) + toremove + format
+# 						destination = "deleted_sounds/" + getcat(toremove) + "/" + toremove + format
+# 						print(source)
+# 						print("\n")
+# 						print(destination)
+# 						os.rename(getcatpath(getcat(toremove)) + toremove + format, "deleted_sounds/" + getcat(toremove) + "/" + toremove + format)
+# 						await channel.send("Removed sound successfully.")
+# 						break
+# 				if not removedOne:
+# 					await channel.send("This sound doesn't exist. What are you trying to do? :smile:")
+# 
+# 			except Exception as e:
+# 				logger.debug(str(e))
+# 				print (e)
+# 				await channel.send("Something went wrong.\n")
+# 		else:
+# 			await channel.send("Only the owner/an admin can remove a sound.")
 
 # @client.command(name="restore")
 # async def restore_sound(ctx):									# Ändern sunst bumst di söwa in Oasch --> ( . Y . )
@@ -323,28 +325,21 @@ async def remove_sound(ctx):							# Ändern sunst bumst di söwa in Oasch --> (
 # 				await channel.send("Something went wrong. Please try again.")
 # 		else:
 # 			await channel.send("This command can only be used by the owner!")
-# # Would have been nice, or something! 
-# # def getKeyAliases():
-# # 	folder_dict_keys=folder_dict.keys()
-# # 	key_aliases_list=[]
-# # 	for folder_key in folder_dict_keys:
-# # 		key_aliases_list=key_aliases_list.append("!list "+folder_key)
-# # 	return(key_aliases_list)
-# @client.command()
-# async def listcat(ctx):
-# 	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
-# 		channel = ctx.message.channel
-# 		if ctx.message.author.dm_channel == None:
-# 			try:
-# 				await ctx.message.author.create_dm()
-# 			except Exception as e:
-# 				logger.debug(str(e))
-# 		try:
-# 			embed = discord.Embed(title="Available categories:", description="\n".join(cat_list_generator()), color=0xcc2f00)
-# 			await channel.send(content=None, tts=False, embed=embed)
-# 		except Exception as e:
-# 			# print(f"Exception: {e}")
-# 			logger.debug(str(e))
+
+@client.command()
+async def categories(ctx):
+	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
+		channel = ctx.message.channel
+		if ctx.message.author.dm_channel == None:
+			try:
+				await ctx.message.author.create_dm()
+			except Exception as e:
+				logger.debug(str(e))
+		try:
+			embed = discord.Embed(title="Available categories:", description="\n".join(Controller.category_list), color=0xcc2f00)
+			await channel.send(content=None, tts=False, embed=embed)
+		except Exception as e:
+			logger.debug(str(e))
 
 @client.command()
 async def list(ctx):
@@ -356,24 +351,57 @@ async def list(ctx):
 			except Exception as e:
 				logger.debug(str(e))
 		try:
-			song_name_list = Controller.song_list_generator(ctx.message.content,invoker=True,as_object=False)
+			song_name_list = Controller.song_list_generator(ctx.message.content,invoker=True,as_object=False)		
+			# sliced_song_name_list=[]			#needs to be changed!! do not delete! 
+			# counter=0
+			# while True:
+			# 	counter+=1
+			# 	if len(song_name_list)==0:
+			# 		break
+			# 	if counter%3==False:
+			# 		list_storage=[]
+			# 		list_storage.append(song_name_list[:counter])
+			# 		song_name_list=song_name_list[counter:]
+			# 		for element in list_storage:
+			# 			sliced_song_name_list.append(element)
+			# 		counter=1
+			# print(sliced_song_name_list)
+			# char_counter=0
+			# start=0
+			# for list_index,liste in enumerate(sliced_song_name_list):
+			# 	char_counter+=len(tabulate(liste,tablefmt="orgtbl"))
+			# #     print(len(tabulate(liste,tablefmt="orgtbl")))
+			# 	if char_counter>=2048:
+			# 		char_counter=len(tabulate(liste,tablefmt="orgtbl"))
+			# 		
+			# 		# print("maximum reached")
+			# 		description=tabulate(sliced_song_name_list[start:list_index],tablefmt="orgtbl")
+			# 		embed = discord.Embed(title=f"Available Sounds", description=description, color=0xcc2f00)
+			# 		await channel.send(content=None, tts=False, embed=embed)
+			# 		start=list_index
+			# 	elif list_index+1==len(sliced_song_name_list):
+			# 		description=tabulate(sliced_song_name_list[start:],tablefmt="orgtbl")
+			# 		embed = discord.Embed(title=f"Available Sounds", description=description, color=0xcc2f00)
+			# 		# print("end reached")
+			# 		# print(tabulate(sliced_song_name_list[start:],tablefmt="orgtbl"))
+
 			if len(song_name_list):
-				counter=0
-				list_counter=0
-				pgcntr=1
+				char_counter=0
+				list_element_counter=0
+				page_counter=1
 				print("I am here!")
 				for song in song_name_list:
-					counter+=len(song)
-					print(song, counter,song_name_list.index(song))
-					if counter>=2048-len(song)-song_name_list.index(song)+list_counter:
-						embed = discord.Embed(title=f"Available Sounds", description="\n".join(song_name_list[list_counter:song_name_list.index(song)]), color=0xcc2f00)
+					char_counter+=len(song)
+					print(song, char_counter,song_name_list.index(song))
+					if char_counter>=2048-len(song)-song_name_list.index(song)+list_element_counter:
+						embed = discord.Embed(title=f"Available Sounds", description="\n".join(song_name_list[list_element_counter:song_name_list.index(song)]), color=0xcc2f00)
 						print("in the if-loop!")
-						counter=0
-						pgcntr+=1
-						list_counter=song_name_list.index(song)
+						char_counter=0
+						page_counter+=1
+						list_element_counter=song_name_list.index(song)
 						await channel.send(content=None, tts=False, embed=embed)
 					elif song==song_name_list[-1]:
-						embed = discord.Embed(title=f"Available Sounds", description="\n".join(song_name_list[list_counter:]), color=0xcc2f00)
+						embed = discord.Embed(title=f"Available Sounds", description="\n".join(song_name_list[list_element_counter:]), color=0xcc2f00)
 						await channel.send(content=None, tts=False, embed=embed)
 						break
 			else:
@@ -439,41 +467,16 @@ async def set_volume(ctx):
 			await channel.send(content="There was an error setting the volume.")
 			logger.debug(str(e))
 
-
-#def init_dict(sound_dir=sound_dir):			# initiation function: dictionary={key=foldername:value=filelist}
-#	raw_files=os.listdir(sound_dir)			# manipulates global variable "folder_dict"
-#	for raw_file in raw_files:
-#		if os.path.isdir(sound_dir+raw_file)==True:
-#			folder_dict[raw_file]=[] 
-#	folder_dict_keys=folder_dict.keys()
-#	for folder_key in folder_dict_keys:  
-#		folder_dict[folder_key]=os.listdir(sound_dir+folder_key+"/")
-#	for folder_key in folder_dict_keys:
-#		for folder_element_index,folder_element in enumerate(folder_dict[folder_key]):
-#			folder_dict[folder_key][folder_element_index]=folder_element[:folder_element.rfind(".")]
-
-
-
-#def getListOfAliases():						# creates a list of all available songfiles in every subfolder
-#	files_list=[]							# of the given path (e.q: path="sounds/")
-#	folder_dict_keys=folder_dict.keys()
-#	for folder_key in folder_dict_keys:
-#		files_list.extend(folder_dict[folder_key])
-#	return(files_list)
-
-@client.command(aliases=Controller.song_list_generator("!" + Controller.config_file["list_command"]))
-async def play_sound(ctx,sound_dir=Controller.config_file["sound_folder"]):			#sound_dir as keyword-argument to define standard sound-folder
+@client.command(aliases=Controller.song_list_generator("!list",invoker=True,as_object=False))
+async def play_sound(ctx):
 	global currentVoiceChannel
 	global voice
 	global volume
 	logger.info("play sound received")
-	print(Controller.song_list_generator("!list"))
-	print("play sound received")
 	if type(ctx.message.channel) is discord.DMChannel or ctx.message.channel.id == commandChannel:
 		channel = ctx.message.channel
 		guild = None
 		song_path = Controller.path_generator(ctx.message.content)
-		print(song_path)
 		for guilds in client.guilds:
 			guild = guilds
 			vchannel = guild.get_member(ctx.message.author.id).voice.channel
@@ -492,7 +495,6 @@ async def play_sound(ctx,sound_dir=Controller.config_file["sound_folder"]):			#s
 						await voice.disconnect()
 					voice = await vchannel.connect()
 					currentVoiceChannel = vchannel
-
 				if os.path.exists(song_path):
 					sourceToPlay = discord.FFmpegPCMAudio(song_path)
 					sourceToPlay = discord.PCMVolumeTransformer(sourceToPlay)

@@ -8,9 +8,21 @@ import numpy as np
 class Controller():
     object_sound_list = []
     config_file = ConfigReader.read_config_file('config_file.json')
+    category_list = np.array([])
 
-    @staticmethod
-    def import_sounds_from_fs(sound_folder):
+    @classmethod
+    def cat_list_generator(cls)->None:
+        """This function edits the class-attribute 'category_list' and fills it with all available categories
+        which are defined in the song-object-category attributes. 
+
+        """
+        for sound_obj in cls.object_sound_list:
+            cls.category_list = np.append(cls.category_list,sound_obj.category)
+        cls.category_list = np.unique(cls.category_list)
+        cls.category_list = np.sort(cls.category_list)
+
+    @classmethod
+    def import_sounds_from_fs(cls,sound_folder):
         sound_dict={}
         raw_files = os.listdir(sound_folder)                            #list all elements in sound directory
         for raw_file in raw_files:                                      #Iterate elements
@@ -22,9 +34,7 @@ class Controller():
             for sound in raw_sound_list:                                            #loop through the soundfiles in current category
                 file_extension=sound[sound.rfind("."):]                 #read out file_extension
                 sound=sound.replace(file_extension,"")                  #remove file_extension from sound-file
-                Controller.object_sound_list.append(Sound(sound,folder_key,file_extension,counter=0))    #append sound object to list
-        #print(Controller.object_sound_list)
-        #return(Controller.object_sound_list)
+                cls.object_sound_list.append(Sound(sound,folder_key,file_extension,counter=0))    #append sound object to list
 
     @staticmethod
     def export_sounds(save_folder):
@@ -48,24 +58,9 @@ class Controller():
         sliced_command=command[1:]
         for sound_obj in Controller.object_sound_list:
             if sound_obj.name==sliced_command:
-                return(f"{Controller.config_file['sound_folder']}{sound_obj.category}/{sound_obj.name}{sound_obj.file_extension}")
-            else:
-                raise exp.SoundNotFoundError(f"The sound '{command}' does not exist!")
+                return(f"{Controller.config_file['sound_folder']}{sound_obj.category}/{sound_obj.name}{sound_obj.file_extension}")    
+        raise exp.SoundNotFoundError(f"The sound '{command}' does not exist!")
         
-    @staticmethod
-    def cat_list_generator()->list:
-        """This function creates a list with all available categories which are defined in the
-        song-object-category attributes. 
-
-        Returns:
-            list: list with all categories
-        """
-        category_list = np.array([])
-        for sound_obj in Controller.object_sound_list:
-            category_list = np.append(category_list,sound_obj.category)
-        category_list = np.unique(category_list)
-        category_list = np.sort(category_list)
-        return category_list
 
     @staticmethod
     def song_list_generator(command:str,invoker=False,as_object=False)->list:
@@ -91,7 +86,7 @@ class Controller():
         print(command)
         song_list=[]                                                                        #e.g.: command = !list --> len(string)=0, command = !list HandOfBlood --> len(string) != HandOfBlood
         if len(command)!= 0:                                                                #Check if len(command) is not zero
-            if command in Controller.cat_list_generator():                                  #Check if category exists
+            if command in Controller.category_list:                                         #Check if category exists
                 if as_object==False:                                                        #if as_object==False, create song_name_list
                     for sound_obj in Controller.object_sound_list:                          #Iterate all sound objects
                             if sound_obj.category == command:
@@ -112,7 +107,6 @@ class Controller():
                 else:
                     song_list.append(sound_obj)                                             #if as_object==True, create song_object_list
         song_list.sort()
-        print(song_list)
         return song_list                                                                    #Return List of desired Sound
 
 
