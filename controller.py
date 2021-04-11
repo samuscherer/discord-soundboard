@@ -4,6 +4,8 @@ from config_reader import ConfigReader
 import exceptions as exp
 import os
 import numpy as np
+import pickle
+import time
 
 class Controller():
     object_sound_list = []
@@ -38,7 +40,19 @@ class Controller():
 
     @staticmethod
     def export_sounds(save_folder):
-        pass
+        filename = "sv1"
+        #filename = f"sv_{time.strftime("%Y%m%d-%H%M%S")}"              #Save file with timestamp in the future
+        outfile = open(filename, 'wb')
+        pickle.dump(Controller.object_sound_list, outfile)
+        outfile.close()
+
+    def import_sounds(save_folder):
+        filename = "sv1"
+        infile = open(filename, 'rb')
+        object_sound_list2 = pickle.load(infile)
+        infile.close()
+        print("\n", Controller.object_sound_list[1].name, "     ", Controller.object_sound_list[-1].name, "     ", len(Controller.object_sound_list), "\n")
+        print("\n", object_sound_list2[1].name, "     ", object_sound_list2[-1].name, "     ", len(Controller.object_sound_list), "\n")
 
     @staticmethod
     def path_generator(command:str)->str:       #move to Song-Class! (maybe)
