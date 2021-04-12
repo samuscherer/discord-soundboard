@@ -40,7 +40,7 @@ class Controller():
                 cls.object_sound_list.append(Sound(sound,folder_key,file_extension,counter=0))    #append sound object to list
 
     @staticmethod
-    def export_sounds(save_folder)->int:
+    def export_save(save_folder)->int:
         """ This function handles the save_file exports
             - creates the save_folder if it does not exist
             - Serializes the song_object_list with pickle and dumps it to save_file
@@ -53,8 +53,8 @@ class Controller():
                 ------- Add Raise once you know how to do that properly @Andi ------ 
                 
             Returns:
-                -1 in Error case
-                1 in nominal case
+                False in Error case
+                True in nominal case
         """
         try:
             if not os.path.exists(save_folder):
@@ -62,17 +62,18 @@ class Controller():
             filename = "./" + save_folder + "/" + Controller.config_file['save_name']
             list_of_save_files = os.listdir(Controller.config_file['savefile_folder'])
             list_of_save_files = [f"./{save_folder}/{save_file}" for save_file in list_of_save_files]
-            shutil.copy2(filename, filename + "_" + time.strftime("%Y%m%d-%H%M%S"))
+            if os.path.isfile(filename):
+                shutil.copy2(filename, filename + "_" + time.strftime("%Y%m%d-%H%M%S"))
             if len(list_of_save_files) >= Controller.config_file['num_of_savefiles']:
                 os.remove(min(list_of_save_files, key=os.path.getctime))
             outfile = open(filename, 'wb')
             pickle.dump(Controller.object_sound_list, outfile)
             outfile.close()
-            return 0
+            return True
         except:
-            return -1
+            return False
 
-    def import_sounds(save_folder)->int:
+    def import_save(save_folder)->int:
         """ This function handles the save_file import
             - checks if save_file exists
             - Deserializes the song_object_list with pickle and writes it back to song_object_list
@@ -81,18 +82,24 @@ class Controller():
                 save_folder (str):      save_folder location relative to run.py location
                 
             Returns:
-                -1 in Error case
-                1 in nominal case
+                False in Error case
+                True in nominal case
         """
         filename = "./" + save_folder + "/" + Controller.config_file['save_name']
         if os.path.isfile(filename):
             infile = open(filename, 'rb')
             Controller.object_sound_list = pickle.load(infile)
             infile.close()
+            return True
         else:
-            return -1
-        # print("\n", Controller.object_sound_list[1].name, "     ", Controller.object_sound_list[-1].name, "     ", len(Controller.object_sound_list), "\n")
-        # print("\n", object_sound_list2[1].name, "     ", object_sound_list2[-1].name, "     ", len(Controller.object_sound_list), "\n")
+            return False
+    
+    # def save_file_fs_integrity_check(save_folder)->bool:
+    #     object_list_from_fs = Controller.import_sounds_from_fs(save_folder)
+    #     if hash(Controller.object_sound_list) == hash(object_list_from_fs):
+    #         return True
+    #     else:
+    #         return False
 
     @staticmethod
     def path_generator(command:str)->str:       #move to Song-Class! (maybe)

@@ -20,12 +20,13 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logger.addHandler(handler)
 OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
 
-Controller.import_sounds_from_fs(Controller.config_file["sound_folder"])
-Controller.cat_list_generator()
 
-Controller.export_sounds(Controller.config_file["savefile_folder"])
-Controller.import_sounds(Controller.config_file["savefile_folder"])
-
+def init():
+	if not Controller.import_save(Controller.config_file["savefile_folder"]):
+		print("save_file gibts nicht")
+		Controller.import_sounds_from_fs(Controller.config_file["sound_folder"])
+		Controller.export_save(Controller.config_file["savefile_folder"])
+	Controller.cat_list_generator()
 
 def load_opus_lib(opus_libs=OPUS_LIBS):
 	if discord.opus.is_loaded():
@@ -54,6 +55,8 @@ commandChannel = conf['commandChannel']
 whiteList = conf['whitelist']
 admins = conf['admins']
 commandNames = None
+
+init()
 
 def saveConfig():
 	global conf
@@ -127,6 +130,32 @@ async def help(ctx):
 			helpmessage += "**"+conf['invoker']+"volume [1-100]:** Sets a new volume.\n\n"
 		embed = discord.Embed(title=None, description=helpmessage, color=0x56a80f)
 		await channel.send(content=None, tts=False, embed=embed)
+
+@client.command(aliases = ["export"])
+async def export_sounds(ctx):
+	if ctx.message.channel.id == commandChannel:
+		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+			try:
+				Controller.export_save(Controller.config_file["savefile_folder"])
+				await ctx.message.channel.send("Sound database exported successfully")
+			except Exception as e:
+				logger.debug(str(e))
+				await ctx.message.channel.send("Something went wrong.")
+		else:
+			await ctx.message.channel.send("Only the owner/an admin can manually export sounds!")
+
+@client.command(aliases = ["import"])
+async def import_sounds(ctx):
+	if ctx.message.channel.id == commandChannel:
+		if ctx.message.author.id == conf['ownerID'] or ctx.message.author.id in conf['admins']:
+			try:
+				Controller.import_save(Controller.config_file["savefile_folder"])
+				await ctx.message.channel.send("Sound database imported successfully")
+			except Exception as e:
+				logger.debug(str(e))
+				await ctx.message.channel.send("Something went wrong.")
+		else:
+			await ctx.message.channel.send("Only the owner/an admin can manually import sounds!")
 
 @client.command()
 async def removewhitelist(ctx):
