@@ -23,8 +23,8 @@ OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus
 Controller.import_sounds_from_fs(Controller.config_file["sound_folder"])
 Controller.cat_list_generator()
 
-Controller.export_sounds(Controller.config_file["savefile_folder"]+"/")
-Controller.import_sounds(Controller.config_file["savefile_folder"]+"/")
+Controller.export_sounds(Controller.config_file["savefile_folder"])
+Controller.import_sounds(Controller.config_file["savefile_folder"])
 
 
 def load_opus_lib(opus_libs=OPUS_LIBS):

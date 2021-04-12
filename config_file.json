@@ -1,6 +1,8 @@
 {   
     "sound_folder": "./sounds/",
     "savefile_folder": "./savefiles/",
+	"save_name": "sv_dcsb",
+    "num_of_savefiles": 10,
     "volume":75,
     "sid":0,
     "counter":0,

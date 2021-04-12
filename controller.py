@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pickle
 import time
+import shutil
 
 class Controller():
     object_sound_list = []
@@ -39,20 +40,59 @@ class Controller():
                 cls.object_sound_list.append(Sound(sound,folder_key,file_extension,counter=0))    #append sound object to list
 
     @staticmethod
-    def export_sounds(save_folder):
-        filename = "sv1"
-        #filename = f"sv_{time.strftime("%Y%m%d-%H%M%S")}"              #Save file with timestamp in the future
-        outfile = open(filename, 'wb')
-        pickle.dump(Controller.object_sound_list, outfile)
-        outfile.close()
+    def export_sounds(save_folder)->int:
+        """ This function handles the save_file exports
+            - creates the save_folder if it does not exist
+            - Serializes the song_object_list with pickle and dumps it to save_file
+            - Deletes oldest save_file when reaching the defined maximum
+            
+            Args:
+                save_folder (str):      save_folder location relative to run.py location
 
-    def import_sounds(save_folder):
-        filename = "sv1"
-        infile = open(filename, 'rb')
-        object_sound_list2 = pickle.load(infile)
-        infile.close()
-        print("\n", Controller.object_sound_list[1].name, "     ", Controller.object_sound_list[-1].name, "     ", len(Controller.object_sound_list), "\n")
-        print("\n", object_sound_list2[1].name, "     ", object_sound_list2[-1].name, "     ", len(Controller.object_sound_list), "\n")
+            Raises: 
+                ------- Add Raise once you know how to do that properly @Andi ------ 
+                
+            Returns:
+                -1 in Error case
+                1 in nominal case
+        """
+        try:
+            if not os.path.exists(save_folder):
+                os.mkdir(save_folder)
+            filename = "./" + save_folder + "/" + Controller.config_file['save_name']
+            list_of_save_files = os.listdir(Controller.config_file['savefile_folder'])
+            list_of_save_files = [f"./{save_folder}/{save_file}" for save_file in list_of_save_files]
+            shutil.copy2(filename, filename + "_" + time.strftime("%Y%m%d-%H%M%S"))
+            if len(list_of_save_files) >= Controller.config_file['num_of_savefiles']:
+                os.remove(min(list_of_save_files, key=os.path.getctime))
+            outfile = open(filename, 'wb')
+            pickle.dump(Controller.object_sound_list, outfile)
+            outfile.close()
+            return 0
+        except:
+            return -1
+
+    def import_sounds(save_folder)->int:
+        """ This function handles the save_file import
+            - checks if save_file exists
+            - Deserializes the song_object_list with pickle and writes it back to song_object_list
+            
+            Args:
+                save_folder (str):      save_folder location relative to run.py location
+                
+            Returns:
+                -1 in Error case
+                1 in nominal case
+        """
+        filename = "./" + save_folder + "/" + Controller.config_file['save_name']
+        if os.path.isfile(filename):
+            infile = open(filename, 'rb')
+            Controller.object_sound_list = pickle.load(infile)
+            infile.close()
+        else:
+            return -1
+        # print("\n", Controller.object_sound_list[1].name, "     ", Controller.object_sound_list[-1].name, "     ", len(Controller.object_sound_list), "\n")
+        # print("\n", object_sound_list2[1].name, "     ", object_sound_list2[-1].name, "     ", len(Controller.object_sound_list), "\n")
 
     @staticmethod
     def path_generator(command:str)->str:       #move to Song-Class! (maybe)
